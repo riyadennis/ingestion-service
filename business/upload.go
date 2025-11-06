@@ -8,7 +8,6 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
-	"path/filepath"
 
 	"github.com/minio/minio-go/v7"
 )
@@ -38,7 +37,7 @@ func NewBucketUpload(storage *minio.Client, bucketName string) *BucketUpload {
 }
 
 type FileUploadHandler interface {
-	Upload(ctx context.Context, file multipart.File) error
+	Upload(ctx context.Context, file io.Reader) error
 }
 
 type FileUpload struct {
@@ -57,14 +56,14 @@ func NewFileUpload(uploader *BucketUpload, fileName string, size int64, contentT
 	}
 }
 
-func (f *FileUpload) Upload(ctx context.Context, file multipart.File) error {
+func (f *FileUpload) Upload(ctx context.Context, file io.Reader) error {
 	// save a temporary copy of the file
 	data := make([]byte, f.Size)
 	_, err := io.ReadFull(file, data)
 	if err != nil {
 		return err
 	}
-	generatedFileName := generateSafeFilename(f.FileName)
+	generatedFileName := generateSafeFilename(f.FileName, f.ContentType)
 	err = os.WriteFile(generatedFileName, data, 0644)
 	if err != nil {
 		return err
@@ -82,14 +81,24 @@ func (f *FileUpload) Upload(ctx context.Context, file multipart.File) error {
 	return os.Remove(generatedFileName)
 }
 
-func generateSafeFilename(originalName string) string {
-	ext := filepath.Ext(originalName)
+func generateSafeFilename(originalName, contentType string) string {
+	var ext string
+	switch contentType {
+	case "image/jpeg":
+		ext = "jpeg"
+	case "image/png":
+		ext = "png"
+	case "application/pdf":
+		ext = "pdf"
+	default:
+		ext = "doc"
+	}
 	randomBytes := make([]byte, 16)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
 		return originalName
 	}
-	return hex.EncodeToString(randomBytes) + ext
+	return hex.EncodeToString(randomBytes) + "." + ext
 }
 
 func ValidateFileType(header *multipart.FileHeader) error {
