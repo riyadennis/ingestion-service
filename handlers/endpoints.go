@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/minio/minio-go/v7"
+	"github.com/riyadennis/ingestion-service/business"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,7 +49,7 @@ func LoadRESTEndpoints(logger *logrus.Logger, client *minio.Client, bucketName s
 	r.Get(LivenessEndPoint, Liveness)
 	r.Get(ReadinessEndPoint, Ready)
 
-	h := NewUploader(client, logger, bucketName)
+	h := NewUploader(logger, business.NewBucketUpload(client, bucketName))
 	r.Post(UploadEndpoint, h.Upload)
 
 	return r

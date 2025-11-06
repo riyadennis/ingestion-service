@@ -5,7 +5,7 @@ const (
 	// validation failures in a POST request
 	ValidationFailed = "validation-failure"
 
-	// InvalidRequest is returned if request is not a valid one
+	// InvalidRequest is returned if the request is not valid
 	InvalidRequest = "invalid-request"
 )
 
