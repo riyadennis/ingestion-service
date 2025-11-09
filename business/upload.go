@@ -6,38 +6,37 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-	"mime/multipart"
 	"os"
 
 	"github.com/minio/minio-go/v7"
 )
 
+const MaxFileSize = 1024 * 1024 * 100
+
 var (
 	errUnsupportedFileType = errors.New("unsupported file type")
 	AllowedTypes           = map[string]bool{
-		"image/jpeg":      true,
-		"image/png":       true,
-		"application/pdf": true,
+		"image/jpeg":               true,
+		"image/png":                true,
+		"application/pdf":          true,
+		"application/octet-stream": true,
 	}
 )
 
 type BucketUpload struct {
-	Storage      *minio.Client
-	BucketName   string
-	MaxFileSize  int64
-	AllowedTypes map[string]bool
+	Storage    *minio.Client
+	BucketName string
 }
 
 func NewBucketUpload(storage *minio.Client, bucketName string) *BucketUpload {
 	return &BucketUpload{
-		Storage:     storage,
-		BucketName:  bucketName,
-		MaxFileSize: 1024 * 1024 * 100,
+		Storage:    storage,
+		BucketName: bucketName,
 	}
 }
 
-type FileUploadHandler interface {
-	Upload(ctx context.Context, file io.Reader) error
+type FileUploader interface {
+	Upload(ctx context.Context) error
 }
 
 type FileUpload struct {
@@ -45,21 +44,17 @@ type FileUpload struct {
 	FileName    string
 	Size        int64
 	ContentType string
+	File        io.Reader
 }
 
-func NewFileUpload(uploader *BucketUpload, fileName string, size int64, contentType string) *FileUpload {
-	return &FileUpload{
-		Uploader:    uploader,
-		FileName:    fileName,
-		Size:        size,
-		ContentType: contentType,
+func (f *FileUpload) Upload(ctx context.Context) error {
+	// validate file type
+	if !AllowedTypes[f.ContentType] {
+		return errUnsupportedFileType
 	}
-}
-
-func (f *FileUpload) Upload(ctx context.Context, file io.Reader) error {
 	// save a temporary copy of the file
 	data := make([]byte, f.Size)
-	_, err := io.ReadFull(file, data)
+	_, err := io.ReadFull(f.File, data)
 	if err != nil {
 		return err
 	}
@@ -99,12 +94,4 @@ func generateSafeFilename(originalName, contentType string) string {
 		return originalName
 	}
 	return hex.EncodeToString(randomBytes) + "." + ext
-}
-
-func ValidateFileType(header *multipart.FileHeader) error {
-	contentType := header.Header.Get("Content-Type")
-	if !AllowedTypes[contentType] {
-		return errUnsupportedFileType
-	}
-	return nil
 }
