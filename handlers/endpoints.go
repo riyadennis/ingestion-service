@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/minio/minio-go/v7"
 	"github.com/riyadennis/ingestion-service/business"
 	"github.com/sirupsen/logrus"
 )
@@ -24,7 +23,7 @@ const (
 )
 
 // LoadRESTEndpoints adds REST endpoints to the router
-func LoadRESTEndpoints(logger *logrus.Logger, client *minio.Client, bucketName string) http.Handler {
+func LoadRESTEndpoints(logger *logrus.Logger, client business.Storage, bucketName string) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)

@@ -31,28 +31,11 @@ func JSONResponse(w http.ResponseWriter, status int, message, errCode string) er
 	return nil
 }
 
-// NewResponse creates an instance of response structure
+// NewResponse creates an instance of the response structure
 func NewResponse(status int, message, errCode string) *Response {
 	return &Response{
 		Status:    status,
 		Message:   message,
 		ErrorCode: errCode,
 	}
-}
-
-// Resource writes a JSON API compliant resource response
-// More here: https://jsonapi.org/format/#document-resource-objects
-func Resource(w http.ResponseWriter, status int, resource interface{}) error {
-	w.Header().Set("Content-Type", "application/vnd.api+json; charset=utf-8")
-	w.WriteHeader(status)
-	data, err := json.Marshal(resource)
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(data)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

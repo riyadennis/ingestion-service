@@ -23,12 +23,17 @@ var (
 	}
 )
 
+type Storage interface {
+	FPutObject(ctx context.Context, bucketName,
+		objectName, filePath string, opts minio.PutObjectOptions) (minio.UploadInfo, error)
+}
+
 type BucketUpload struct {
-	Storage    *minio.Client
+	Storage    Storage
 	BucketName string
 }
 
-func NewBucketUpload(storage *minio.Client, bucketName string) *BucketUpload {
+func NewBucketUpload(storage Storage, bucketName string) *BucketUpload {
 	return &BucketUpload{
 		Storage:    storage,
 		BucketName: bucketName,

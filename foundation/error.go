@@ -1,10 +1,6 @@
 package foundation
 
 const (
-	// ValidationFailed is the error code for
-	// validation failures in a POST request
-	ValidationFailed = "validation-failure"
-
 	// InvalidRequest is returned if the request is not valid
 	InvalidRequest = "invalid-request"
 )
