@@ -78,7 +78,12 @@ func (f *FileUpload) Upload(ctx context.Context) error {
 		return err
 	}
 	// delete the temporary file
-	return os.Remove(generatedFileName)
+	err = os.Remove(generatedFileName)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+
+	return err
 }
 
 func generateSafeFilename(originalName, contentType string) string {

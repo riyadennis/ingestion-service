@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	errFileTooLarge = errors.New("file too large")
+	errInvalidFile  = errors.New("invalid file in the request")
 	errFetchingFile = errors.New("error fetching file")
 )
 
@@ -51,7 +51,7 @@ func (u *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		fu, err = business.HandleFormData(w, r, u.Uploader)
 		if err != nil {
 			foundation.ErrorResponse(w, http.StatusBadRequest,
-				errFileTooLarge, foundation.InvalidRequest)
+				errInvalidFile, foundation.InvalidRequest)
 			return
 		}
 
@@ -59,11 +59,11 @@ func (u *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		fu, err = business.HandleBinaryData(r, u.Uploader)
 		if err != nil {
 			foundation.ErrorResponse(w, http.StatusBadRequest,
-				errFileTooLarge, foundation.InvalidRequest)
+				errInvalidFile, foundation.InvalidRequest)
 			return
 		}
 	}
-	
+
 	err = fu.Upload(r.Context())
 	if err != nil {
 		u.Logger.Errorf("failed to read file: %v", err)

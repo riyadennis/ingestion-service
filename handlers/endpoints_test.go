@@ -15,10 +15,12 @@ import (
 type MockStorage struct {
 	uploadInfo minio.UploadInfo
 	err        error
+	fileName   string
 }
 
 func (m *MockStorage) FPutObject(_ context.Context, _,
-	_, _ string, _ minio.PutObjectOptions) (info minio.UploadInfo, err error) {
+	fileName, _ string, _ minio.PutObjectOptions) (info minio.UploadInfo, err error) {
+	m.fileName = fileName
 	return m.uploadInfo, m.err
 }
 
