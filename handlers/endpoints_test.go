@@ -72,5 +72,4 @@ func TestLoadRESTEndpoints(t *testing.T) {
 			assert.Equal(t, scenario.expectedStatusCode, w.Code)
 		})
 	}
-
 }
