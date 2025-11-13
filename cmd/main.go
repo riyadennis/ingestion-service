@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
 
-	server2 "github.com/riyadennis/ingestion-service/server"
+	"github.com/riyadennis/ingestion-service/server"
 	"github.com/riyadennis/ingestion-service/storage"
 	"github.com/sirupsen/logrus"
 )
@@ -25,8 +27,14 @@ func main() {
 		logger.Fatalf("failed to make bucket: %v", err)
 	}
 
-	logger.Info("Bucket created")
-	restServer := server2.NewServer(os.Getenv("PORT"))
+	restServer, err := server.NewServer(os.Getenv("PORT"))
+	if err != nil {
+		logger.Fatalf("failed to initialise server: %v", err)
+	}
+	logger.Info("Server created")
+
+	signal.Notify(restServer.ShutDown, os.Interrupt, syscall.SIGTERM)
+
 	err = restServer.Run(logger, client, cf.BucketName)
 	if err != nil {
 		logger.Fatalf("failed to start server: %v", err)

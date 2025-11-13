@@ -13,7 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const timeOut = 5 * time.Second
+// timeOut 30 seconds to support large file uploads upto 100MP
+const timeOut = 30 * time.Second
 
 var (
 	errEmptyPort           = errors.New("port number empty")
@@ -30,23 +31,30 @@ type Server struct {
 }
 
 // NewServer creates a server instance with error and shutdown channels initialized
-func NewServer(restPort string) *Server {
+func NewServer(restPort string) (*Server, error) {
 	errChan := make(chan error, 2)
 	shutdown := make(chan os.Signal, 1)
 
 	err := validatePort(restPort)
 	if err != nil {
-		errChan <- err
+		return nil, err
 	}
 	return &Server{
 		restServer: http.Server{
-			Addr:         ":" + restPort,
+			Addr: ":" + restPort,
+			// prevent slow clients from holding connections indefinitely
 			ReadTimeout:  timeOut,
 			WriteTimeout: timeOut,
+			// prevent Slowloris attack
+			ReadHeaderTimeout: 10 * time.Second,
+			// close idle keep-alive connections
+			IdleTimeout: 120 * time.Second,
+			// IMB max header size to prevent memory attacks
+			MaxHeaderBytes: 1 << 20,
 		},
 		ServerError: errChan,
 		ShutDown:    shutdown,
-	}
+	}, nil
 }
 
 // Run registers routes and starts a webserver

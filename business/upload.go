@@ -51,6 +51,15 @@ type FileUpload struct {
 	ContentType string
 }
 
+/*
+Upload uploads a file to storage client set on start up
+  - Validates file type (JPEG, PNG, PDF, octet-stream)
+  - Reads file data (max 100MB)
+  - Generates safe filename with random hex string
+  - Writes temporary file
+  - Uploads to MinIO bucket
+  - Cleans up temp file
+*/
 func (f *FileUpload) Upload(ctx context.Context, storage Storage, bucketName string) (err error) {
 	// validate file type
 	if !AllowedTypes[f.ContentType] {
