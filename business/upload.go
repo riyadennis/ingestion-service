@@ -41,49 +41,42 @@ func NewBucketUpload(storage Storage, bucketName string) *BucketUpload {
 }
 
 type FileUploader interface {
-	Upload(ctx context.Context) error
+	Upload(ctx context.Context, storage Storage, bucketName string) error
 }
 
 type FileUpload struct {
-	Uploader    *BucketUpload
 	FileName    string
+	File        io.Reader
 	Size        int64
 	ContentType string
-	File        io.Reader
 }
 
-func (f *FileUpload) Upload(ctx context.Context) error {
+func (f *FileUpload) Upload(ctx context.Context, storage Storage, bucketName string) (err error) {
 	// validate file type
 	if !AllowedTypes[f.ContentType] {
 		return errUnsupportedFileType
 	}
 	// save a temporary copy of the file
 	data := make([]byte, f.Size)
-	_, err := io.ReadFull(f.File, data)
-	if err != nil {
-		return err
+	if _, err = io.ReadFull(f.File, data); err != nil {
+		return
 	}
 	generatedFileName := generateSafeFilename(f.FileName, f.ContentType)
-	err = os.WriteFile(generatedFileName, data, 0644)
-	if err != nil {
-		return err
+	if err = os.WriteFile(generatedFileName, data, 0644); err != nil {
+		return
 	}
+	defer func() {
+		if removeErr := os.Remove(generatedFileName); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) && err == nil {
+			err = removeErr
+		}
+	}()
 	// upload the file to the bucket
-	_, err = f.Uploader.Storage.FPutObject(ctx,
-		f.Uploader.BucketName, generatedFileName, generatedFileName,
+	_, err = storage.FPutObject(ctx,
+		bucketName, generatedFileName, generatedFileName,
 		minio.PutObjectOptions{
 			ContentType: f.ContentType,
 		})
-	if err != nil {
-		return err
-	}
-	// delete the temporary file
-	err = os.Remove(generatedFileName)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-
-	return err
+	return
 }
 
 func generateSafeFilename(originalName, contentType string) string {

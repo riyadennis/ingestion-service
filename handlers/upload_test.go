@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/riyadennis/ingestion-service/business"
@@ -59,13 +61,8 @@ func TestUpload(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
-			name: "success",
-			request: func() *http.Request {
-				content := bytes.NewReader([]byte("hello"))
-				request := httptest.NewRequest(http.MethodPost, UploadEndpoint, content)
-				request.Header.Set("Content-Type", "image/png")
-				return request
-			}(),
+			name:           "success",
+			request:        requestWithFile(t),
 			storage:        &MockStorage{},
 			expectedStatus: http.StatusOK,
 		},
@@ -86,5 +83,31 @@ func TestUpload(t *testing.T) {
 				assert.Equal(t, scenario.expectedResponse, res.Message)
 			}
 		})
+
 	}
+}
+
+func requestWithFile(t *testing.T) *http.Request {
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	file, err := os.Open("../testdata/test.txt")
+	assert.NoError(t, err)
+	defer func() {
+		err = file.Close()
+		assert.NoError(t, err)
+	}()
+	fileW, err := writer.CreateFormFile("file", "../testdata/test.txt")
+	assert.NoError(t, err)
+	_, err = io.Copy(fileW, file)
+	assert.NoError(t, err)
+	defer func() {
+		err = writer.Close()
+		assert.NoError(t, err)
+	}()
+
+	req := httptest.NewRequest(http.MethodPost,
+		"/request", &buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	return req
 }

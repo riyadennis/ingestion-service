@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/riyadennis/ingestion-service/business"
 	"github.com/riyadennis/ingestion-service/foundation"
@@ -47,24 +48,26 @@ func (u *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		fu  *business.FileUpload
 		err error
 	)
-	if contentType == "multipart/form-data" {
-		fu, err = business.HandleFormData(w, r, u.Uploader)
+	if strings.Contains(contentType, "multipart/form-data") {
+		fu, err = business.HandleFormData(w, r)
 		if err != nil {
+			u.Logger.Errorf("failed to upload form data, got error: %v", err)
 			foundation.ErrorResponse(w, http.StatusBadRequest,
 				errInvalidFile, foundation.InvalidRequest)
 			return
 		}
 
 	} else {
-		fu, err = business.HandleBinaryData(r, u.Uploader)
+		fu, err = business.HandleBinaryData(r)
 		if err != nil {
+			u.Logger.Errorf("failed to handle binary data, got error: %v", err)
 			foundation.ErrorResponse(w, http.StatusBadRequest,
 				errInvalidFile, foundation.InvalidRequest)
 			return
 		}
 	}
 
-	err = fu.Upload(r.Context())
+	err = fu.Upload(r.Context(), u.Uploader.Storage, u.Uploader.BucketName)
 	if err != nil {
 		u.Logger.Errorf("failed to read file: %v", err)
 		foundation.ErrorResponse(w, http.StatusInternalServerError,

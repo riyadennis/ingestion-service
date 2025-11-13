@@ -2,14 +2,17 @@ package business
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"net/http"
 )
 
-func HandleFormData(w http.ResponseWriter, r *http.Request, upload *BucketUpload) (*FileUpload, error) {
+var errInvalidRequest = errors.New("invalid request")
+
+func HandleFormData(w http.ResponseWriter, r *http.Request) (*FileUpload, error) {
 	err := r.ParseMultipartForm(MaxFileSize)
 	if err != nil {
-		return nil, err
+		return nil, errInvalidRequest
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, MaxFileSize)
 	// key in the request body should be file
@@ -21,7 +24,6 @@ func HandleFormData(w http.ResponseWriter, r *http.Request, upload *BucketUpload
 		_ = formFile.Close()
 	}()
 	return &FileUpload{
-		Uploader:    upload,
 		FileName:    header.Filename,
 		Size:        header.Size,
 		ContentType: header.Header.Get("Content-Type"),
@@ -29,7 +31,7 @@ func HandleFormData(w http.ResponseWriter, r *http.Request, upload *BucketUpload
 	}, nil
 }
 
-func HandleBinaryData(r *http.Request, upload *BucketUpload) (*FileUpload, error) {
+func HandleBinaryData(r *http.Request) (*FileUpload, error) {
 	if !AllowedTypes[r.Header.Get("Content-Type")] {
 		return nil, errUnsupportedFileType
 	}
@@ -39,8 +41,8 @@ func HandleBinaryData(r *http.Request, upload *BucketUpload) (*FileUpload, error
 	if err != nil {
 		return nil, err
 	}
+
 	return &FileUpload{
-		Uploader: upload,
 		// get the file name from the header which should be X-Filename
 		FileName:    r.Header.Get("X-Filename"),
 		Size:        int64(requestBody.Len()),
