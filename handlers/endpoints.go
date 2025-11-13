@@ -25,7 +25,8 @@ const (
 // LoadRESTEndpoints adds REST endpoints to the router
 func LoadRESTEndpoints(logger *logrus.Logger, client business.Storage, bucketName string) http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	// wrap already initialised logger to Chi logger
+	r.Use(middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger}))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)

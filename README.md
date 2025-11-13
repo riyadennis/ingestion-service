@@ -1,5 +1,5 @@
 # ingestion-service
-![Coverage](https://img.shields.io/badge/Coverage-32.0%25-yellow)
+![Coverage](https://img.shields.io/badge/Coverage-31.3%25-yellow)
 
 
 To Bring up local minio for development run:
