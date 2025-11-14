@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"path/filepath"
+	"strings"
 )
 
 var errInvalidRequest = errors.New("invalid request")
@@ -23,8 +25,9 @@ func HandleFormData(w http.ResponseWriter, r *http.Request) (*FileUpload, error)
 	defer func() {
 		_ = formFile.Close()
 	}()
+
 	return &FileUpload{
-		FileName:    header.Filename,
+		FileName:    sanitizeFilename(header.Filename),
 		Size:        header.Size,
 		ContentType: header.Header.Get("Content-Type"),
 		File:        formFile,
@@ -44,9 +47,18 @@ func HandleBinaryData(r *http.Request) (*FileUpload, error) {
 
 	return &FileUpload{
 		// get the file name from the header which should be X-Filename
-		FileName:    r.Header.Get("X-Filename"),
+		FileName:    sanitizeFilename(r.Header.Get("X-Filename")),
 		Size:        int64(requestBody.Len()),
 		ContentType: r.Header.Get("Content-Type"),
 		File:        bytes.NewReader(requestBody.Bytes()),
 	}, nil
+}
+
+func sanitizeFilename(filename string) string {
+	// Remove path separators and dangerous characters
+	filename = strings.ReplaceAll(filename, "/", "")
+	filename = strings.ReplaceAll(filename, "\\", "")
+	filename = strings.ReplaceAll(filename, "\x00", "")
+	filename = strings.ReplaceAll(filename, "..", "")
+	return filepath.Base(filename)
 }
