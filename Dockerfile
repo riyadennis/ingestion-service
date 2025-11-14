@@ -1,5 +1,5 @@
 FROM golang:1.24 as builder
-WORKDIR /identity
+WORKDIR /ingestion
 # Copy local code to the container image.
 COPY  .  ./
 
@@ -7,7 +7,7 @@ COPY  .  ./
 RUN go mod download
 
 
-RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o server ./app/auth-api/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o server ./cmd/main.go
 
 FROM ubuntu:bionic
 

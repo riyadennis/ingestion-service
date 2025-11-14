@@ -19,7 +19,7 @@ func main() {
 
 	client, err := storage.NewClient(cf)
 	if err != nil {
-		logger.Fatalf("falied to initialise storage client: %v", err)
+		logger.Fatalf("failed to initialise storage client: %v", err)
 	}
 
 	err = cf.MakeBucket(ctx, client)
