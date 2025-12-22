@@ -36,8 +36,6 @@ Upload handles the file upload request
     Content-Type: image/jpeg, image/png, application/pdf
     body: value file content with key "file"
   - 2. application/octet-stream
-    Header should contain:
-    X-Filename: filename
     Content-Type: image/jpeg, image/png, application/pdf
     body: file content
 */
