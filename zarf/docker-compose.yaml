@@ -1,0 +1,42 @@
+version: '3.7'
+services:
+  minio:
+    container_name: minio
+    image: quay.io/minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: [ "server", "/data", "--console-address", ":9001"]
+    volumes:
+      - ~/minio/data:/data
+    networks:
+      mynet:
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+  ingestion-rest-service:
+    restart: on-failure
+    container_name: ingestion-rest-service
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    ports:
+      - '8090:8090'
+    environment:
+      - LOG_LEVEL=debug
+      - PORT=8090
+      - STORAGE_ENDPOINT=minio:9000
+      - STORAGE_USE_SSL=false
+      - STORAGE_ACCESS_KEY=admin
+      - STORAGE_SECRET_KEY=password123
+      - STORAGE_BUCKET_NAME=test
+    depends_on:
+      - minio
+    networks:
+      mynet:
+networks:
+  mynet:
+    driver: bridge
+volumes:
+  minio_data:
+    driver: local
