@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/minio/minio-go/v7"
-	rest "github.com/riyadennis/ingestion-service/handlers"
 	"github.com/sirupsen/logrus"
+
+	"github.com/riyadennis/ingestion-service/rest"
 )
 
 // timeOut 30 seconds to support large file uploads upto 100MP
