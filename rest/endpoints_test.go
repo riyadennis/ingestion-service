@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/minio/minio-go/v7"
+	"github.com/riyadennis/ingestion-service/business"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -66,7 +67,7 @@ func TestLoadRESTEndpoints(t *testing.T) {
 	client := &MockStorage{}
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			handler := LoadRESTEndpoints(logger, client, "test")
+			handler := LoadRESTEndpoints(logger, &business.BucketUpload{Storage: client, BucketName: "test"})
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, scenario.request)
 			assert.Equal(t, scenario.expectedStatusCode, w.Code)
