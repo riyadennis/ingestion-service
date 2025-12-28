@@ -45,6 +45,7 @@ type FileUploader interface {
 }
 
 type FileUpload struct {
+	RealName    string
 	FileName    string
 	File        io.Reader
 	Size        int64
@@ -84,6 +85,9 @@ func (f *FileUpload) Upload(ctx context.Context, storage Storage, bucketName str
 		bucketName, generatedFileName, generatedFileName,
 		minio.PutObjectOptions{
 			ContentType: f.ContentType,
+			UserMetadata: map[string]string{
+				"fileName": f.RealName,
+			},
 		})
 	return
 }

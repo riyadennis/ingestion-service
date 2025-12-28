@@ -27,7 +27,8 @@ func HandleFormData(w http.ResponseWriter, r *http.Request) (*FileUpload, error)
 	}()
 
 	return &FileUpload{
-		FileName:    sanitizeFilename(header.Filename),
+		RealName:    header.Filename,
+		FileName:    SanitizeFilename(header.Filename),
 		Size:        header.Size,
 		ContentType: header.Header.Get("Content-Type"),
 		File:        formFile,
@@ -47,14 +48,15 @@ func HandleBinaryData(r *http.Request) (*FileUpload, error) {
 
 	return &FileUpload{
 		// get the file name from the header which should be X-Filename
-		FileName:    sanitizeFilename(r.Header.Get("X-Filename")),
+		RealName:    r.Header.Get("X-Filename"),
+		FileName:    SanitizeFilename(r.Header.Get("X-Filename")),
 		Size:        int64(requestBody.Len()),
 		ContentType: r.Header.Get("Content-Type"),
 		File:        bytes.NewReader(requestBody.Bytes()),
 	}, nil
 }
 
-func sanitizeFilename(filename string) string {
+func SanitizeFilename(filename string) string {
 	// Remove path separators and dangerous characters
 	filename = strings.ReplaceAll(filename, "/", "")
 	filename = strings.ReplaceAll(filename, "\\", "")

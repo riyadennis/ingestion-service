@@ -1,0 +1,17 @@
+"The `UploadFile, // b.txt` scalar type represents a multipart file upload."
+scalar Upload
+type File {
+    Size: String
+    CreateAt: String
+    UserID: String
+    Content: String
+}
+"The `Query` type, represents all of the entry points into our object graph."
+type Query {
+    FetchFile(Name: String): File
+}
+
+"The `Mutation` type, represents all updates we can make to our data."
+type Mutation {
+    singleUpload(file: Upload!): Boolean!
+}

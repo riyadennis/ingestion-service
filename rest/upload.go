@@ -64,7 +64,7 @@ func (u *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
+	
 	err = fu.Upload(r.Context(), u.Uploader.Storage, u.Uploader.BucketName)
 	if err != nil {
 		u.Logger.Errorf("failed to read file: %v", err)
