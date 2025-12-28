@@ -23,7 +23,7 @@ const (
 )
 
 // LoadRESTEndpoints adds REST endpoints to the router
-func LoadRESTEndpoints(logger *logrus.Logger, client business.Storage, bucketName string) http.Handler {
+func LoadRESTEndpoints(logger *logrus.Logger, bu *business.BucketUpload) http.Handler {
 	r := chi.NewRouter()
 	// wrap already initialised logger to Chi logger
 	r.Use(middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger}))
@@ -49,7 +49,7 @@ func LoadRESTEndpoints(logger *logrus.Logger, client business.Storage, bucketNam
 	r.Get(LivenessEndPoint, Liveness)
 	r.Get(ReadinessEndPoint, Ready)
 
-	h := NewUploader(logger, business.NewBucketUpload(client, bucketName))
+	h := NewUploader(logger, bu)
 	r.Post(UploadEndpoint, h.Upload)
 
 	return r

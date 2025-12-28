@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/minio/minio-go/v7"
+	"github.com/riyadennis/ingestion-service/business"
 	"github.com/sirupsen/logrus"
 
 	"github.com/riyadennis/ingestion-service/rest"
@@ -60,8 +60,8 @@ func NewServer(restPort string) (*Server, error) {
 
 // Run registers routes and starts a webserver
 // and waits to receive from shutdown and error channels
-func (s *Server) Run(logger *logrus.Logger, client *minio.Client, bucketName string) error {
-	s.restServer.Handler = rest.LoadRESTEndpoints(logger, client, bucketName)
+func (s *Server) Run(logger *logrus.Logger, bu *business.BucketUpload) error {
+	s.restServer.Handler = rest.LoadRESTEndpoints(logger, bu)
 	// Start the service
 	go func() {
 		logger.Printf("server running on port %s", s.restServer.Addr)

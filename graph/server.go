@@ -1,0 +1,103 @@
+package graph
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	"github.com/riyadennis/ingestion-service/business"
+	"github.com/riyadennis/ingestion-service/graph/generated"
+	"github.com/sirupsen/logrus"
+)
+
+// ErrFailedToStartListener means that the listener couldn't be started
+var ErrFailedToStartListener = errors.New("failed to start listener")
+
+// HTTPServer encapsulates two http server operations  that we need to execute in the service
+// it is mainly helpful for testing, by creating mocks for http calls.
+type HTTPServer interface {
+	Shutdown(ctx context.Context) error
+	Serve(l net.Listener) error
+}
+type Server struct {
+	Server   HTTPServer
+	Logger   *logrus.Logger
+	ShutDown chan os.Signal
+}
+
+func NewServer(logger *logrus.Logger, port string, bu *business.BucketUpload) *Server {
+	resolver := NewResolver(logger, bu)
+	srv := handler.New(generated.NewExecutableSchema(
+		generated.Config{
+			Resolvers: resolver,
+		},
+	))
+	srv.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: 10 * time.Second,
+	})
+	srv.AddTransport(transport.Options{})
+	srv.AddTransport(transport.GET{})
+	srv.AddTransport(transport.POST{})
+	srv.AddTransport(transport.MultipartForm{})
+	srv.Use(extension.Introspection{})
+
+	addr := fmt.Sprintf(":%s", port)
+	return &Server{
+		Server: &http.Server{
+			Addr:    addr,
+			Handler: newRouter(srv),
+		},
+		Logger:   logger,
+		ShutDown: make(chan os.Signal, 1),
+	}
+}
+
+func (s *Server) Start(port string) error {
+	s.Logger.Info("starting service", "port", port)
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		s.Logger.Errorf("failed to start http listener: %v", err)
+		return ErrFailedToStartListener
+	}
+	var sErr error
+	go func() {
+		s.Logger.Info("service finished starting and is now ready to accept requests")
+
+		// start http listener
+		sErr = s.Server.Serve(listener)
+		if sErr != nil {
+			if !errors.Is(err, http.ErrServerClosed) {
+				s.Logger.Errorf("failed to start http server: %v", sErr)
+				return
+			}
+		}
+	}()
+
+	return sErr
+}
+
+func newRouter(srv *handler.Server) http.Handler {
+	chiRouter := chi.NewRouter()
+
+	chiRouter.Use(middleware.RequestID)
+	chiRouter.Use(middleware.Recoverer)
+	chiRouter.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"*"},
+	}))
+
+	chiRouter.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
+
+	chiRouter.Handle("/graphql", srv)
+	return chiRouter
+}

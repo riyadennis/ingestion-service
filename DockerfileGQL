@@ -34,4 +34,4 @@ WORKDIR /home/webuser
 COPY --from=builder --chown=root:root  --chmod=755 /ingestion/ingestion-server /home/webuser/ingestion-server
 
 # Run the web service on container startup.
-CMD ["/home/webuser/ingestion-server", "rest-server"]
+CMD ["/home/webuser/ingestion-server", "gql-server"]
