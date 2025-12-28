@@ -19,7 +19,6 @@ import (
 func (r *mutationResolver) SingleUpload(ctx context.Context, file graphql.Upload) (bool, error) {
 	r.Logger.Infof("uploading file content type: %s", file.ContentType)
 	fu := &business.FileUpload{
-		// get the file name from the header which should be X-Filename
 		RealName:    file.Filename,
 		FileName:    business.SanitizeFilename(file.Filename),
 		Size:        file.Size,
@@ -30,7 +29,7 @@ func (r *mutationResolver) SingleUpload(ctx context.Context, file graphql.Upload
 	if err != nil {
 		return false, err
 	}
-	
+
 	return true, nil
 }
 
