@@ -19,7 +19,7 @@ import (
 // SingleUpload is the resolver for the singleUpload field.
 func (r *mutationResolver) SingleUpload(ctx context.Context, file graphql.Upload) (bool, error) {
 	r.Logger.Infof("uploading file content type: %s", file.ContentType)
-	userID := ctx.Value(UserIDContextKey).(*string)
+	userID := ctx.Value(business.UserIDContextKey).(*string)
 	if *userID == "" {
 		r.Logger.Error("unauthorised request, userID not present in context")
 		return false, errors.New("userID not present in context")

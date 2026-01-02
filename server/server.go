@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/riyadennis/identity-server/app/proto/identity"
 	"github.com/riyadennis/ingestion-service/business"
 	"github.com/sirupsen/logrus"
 
@@ -60,8 +61,8 @@ func NewServer(restPort string) (*Server, error) {
 
 // Run registers routes and starts a webserver
 // and waits to receive from shutdown and error channels
-func (s *Server) Run(logger *logrus.Logger, bu *business.BucketUpload) error {
-	s.restServer.Handler = rest.LoadRESTEndpoints(logger, bu)
+func (s *Server) Run(logger *logrus.Logger, bu *business.BucketUpload, client identity.IdentityClient) error {
+	s.restServer.Handler = rest.LoadRESTEndpoints(logger, bu, client)
 	// Start the service
 	go func() {
 		logger.Printf("server running on port %s", s.restServer.Addr)

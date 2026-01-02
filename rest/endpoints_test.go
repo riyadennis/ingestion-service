@@ -53,21 +53,32 @@ func TestLoadRESTEndpoints(t *testing.T) {
 			expectedStatusCode: http.StatusOK,
 		},
 		{
-			name: "upload",
+			name: "upload with no token",
 			request: func() *http.Request {
 				content := bytes.NewReader([]byte("hello"))
 				request := httptest.NewRequest(http.MethodPost, UploadEndpoint, content)
 				request.Header.Set("Content-Type", "image/jpeg")
 				return request
 			}(),
-			expectedStatusCode: http.StatusOK,
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			name: "upload",
+			request: func() *http.Request {
+				content := bytes.NewReader([]byte("hello"))
+				request := httptest.NewRequest(http.MethodPost, UploadEndpoint, content)
+				request.Header.Set("Content-Type", "image/jpeg")
+				request.Header.Set("Authorization", "testToken")
+				return request
+			}(),
+			expectedStatusCode: http.StatusUnauthorized,
 		},
 	}
 	logger := logrus.New()
 	client := &MockStorage{}
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			handler := LoadRESTEndpoints(logger, &business.BucketUpload{Storage: client, BucketName: "test"})
+			handler := LoadRESTEndpoints(logger, &business.BucketUpload{Storage: client, BucketName: "test"}, nil)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, scenario.request)
 			assert.Equal(t, scenario.expectedStatusCode, w.Code)

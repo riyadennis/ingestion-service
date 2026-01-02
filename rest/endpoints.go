@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/riyadennis/identity-server/app/proto/identity"
 	"github.com/riyadennis/ingestion-service/business"
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +24,7 @@ const (
 )
 
 // LoadRESTEndpoints adds REST endpoints to the router
-func LoadRESTEndpoints(logger *logrus.Logger, bu *business.BucketUpload) http.Handler {
+func LoadRESTEndpoints(logger *logrus.Logger, bu *business.BucketUpload, client identity.IdentityClient) http.Handler {
 	r := chi.NewRouter()
 	// wrap already initialised logger to Chi logger
 	r.Use(middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger}))
@@ -49,8 +50,7 @@ func LoadRESTEndpoints(logger *logrus.Logger, bu *business.BucketUpload) http.Ha
 	r.Get(LivenessEndPoint, Liveness)
 	r.Get(ReadinessEndPoint, Ready)
 
-	h := NewUploader(logger, bu)
-	r.Post(UploadEndpoint, h.Upload)
+	r.Post(UploadEndpoint, NewUploader(logger, bu, client).Upload)
 
 	return r
 }

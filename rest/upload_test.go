@@ -70,7 +70,7 @@ func TestUpload(t *testing.T) {
 	logger := logrus.New()
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			up := NewUploader(logger, business.NewBucketUpload(scenario.storage, "test"))
+			up := NewUploader(logger, business.NewBucketUpload(scenario.storage, "test"), nil)
 			w := httptest.NewRecorder()
 			up.Upload(w, scenario.request)
 			data, err := io.ReadAll(w.Result().Body)

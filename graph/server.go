@@ -20,9 +20,6 @@ import (
 	"github.com/riyadennis/ingestion-service/business"
 	"github.com/riyadennis/ingestion-service/graph/generated"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/keepalive"
 )
 
 // ErrFailedToStartListener means that the listener couldn't be started
@@ -40,25 +37,7 @@ type Server struct {
 	ShutDown chan os.Signal
 }
 
-func NewServer(logger *logrus.Logger, bu *business.BucketUpload, port, identityURL string) *Server {
-	opts := []grpc.DialOption{
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                10 * time.Second,
-			Timeout:             3 * time.Second,
-			PermitWithoutStream: true,
-		}),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	}
-	// Create gRPC connection to identity server
-	// Use 127.0.0.1 instead of localhost to force IPv4
-	conn, err := grpc.NewClient(identityURL, opts...)
-
-	if err != nil {
-		logger.Fatalf("failed to create gRPC client: %v", err)
-	}
-	identityClient := identity.NewIdentityClient(conn)
-	logger.Infof("gRPC client created for identity server at %s", identityURL)
-
+func NewServer(logger *logrus.Logger, bu *business.BucketUpload, identityClient identity.IdentityClient, port string) *Server {
 	resolver := NewResolver(logger, bu)
 	srv := handler.New(generated.NewExecutableSchema(
 		generated.Config{
@@ -118,7 +97,7 @@ func newRouter(srv *handler.Server, client identity.IdentityClient, logger *logr
 	chiRouter.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
 	}))
-	chiRouter.Use(NeedsAuthMiddleWare(client, logger))
+	chiRouter.Use(business.NeedsAuthMiddleWare(client, logger))
 	chiRouter.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
 
 	chiRouter.Handle("/graphql", srv)
