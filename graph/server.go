@@ -16,9 +16,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/riyadennis/identity-server/app/proto/identity"
 	"github.com/riyadennis/ingestion-service/business"
 	"github.com/riyadennis/ingestion-service/graph/generated"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 )
 
 // ErrFailedToStartListener means that the listener couldn't be started
@@ -36,7 +40,25 @@ type Server struct {
 	ShutDown chan os.Signal
 }
 
-func NewServer(logger *logrus.Logger, port string, bu *business.BucketUpload) *Server {
+func NewServer(logger *logrus.Logger, bu *business.BucketUpload, port, identityURL string) *Server {
+	opts := []grpc.DialOption{
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                10 * time.Second,
+			Timeout:             3 * time.Second,
+			PermitWithoutStream: true,
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	// Create gRPC connection to identity server
+	// Use 127.0.0.1 instead of localhost to force IPv4
+	conn, err := grpc.NewClient(identityURL, opts...)
+
+	if err != nil {
+		logger.Fatalf("failed to create gRPC client: %v", err)
+	}
+	identityClient := identity.NewIdentityClient(conn)
+	logger.Infof("gRPC client created for identity server at %s", identityURL)
+
 	resolver := NewResolver(logger, bu)
 	srv := handler.New(generated.NewExecutableSchema(
 		generated.Config{
@@ -53,14 +75,15 @@ func NewServer(logger *logrus.Logger, port string, bu *business.BucketUpload) *S
 	srv.Use(extension.Introspection{})
 
 	addr := fmt.Sprintf(":%s", port)
-	return &Server{
+	server := &Server{
 		Server: &http.Server{
 			Addr:    addr,
-			Handler: newRouter(srv),
+			Handler: newRouter(srv, identityClient, logger),
 		},
 		Logger:   logger,
 		ShutDown: make(chan os.Signal, 1),
 	}
+	return server
 }
 
 func (s *Server) Start(port string) error {
@@ -87,7 +110,7 @@ func (s *Server) Start(port string) error {
 	return sErr
 }
 
-func newRouter(srv *handler.Server) http.Handler {
+func newRouter(srv *handler.Server, client identity.IdentityClient, logger *logrus.Logger) http.Handler {
 	chiRouter := chi.NewRouter()
 
 	chiRouter.Use(middleware.RequestID)
@@ -95,7 +118,7 @@ func newRouter(srv *handler.Server) http.Handler {
 	chiRouter.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
 	}))
-
+	chiRouter.Use(NeedsAuthMiddleWare(client, logger))
 	chiRouter.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
 
 	chiRouter.Handle("/graphql", srv)

@@ -50,6 +50,7 @@ type FileUpload struct {
 	File        io.Reader
 	Size        int64
 	ContentType string
+	UserID      string
 }
 
 /*
@@ -87,6 +88,7 @@ func (f *FileUpload) Upload(ctx context.Context, storage Storage, bucketName str
 			ContentType: f.ContentType,
 			UserMetadata: map[string]string{
 				"fileName": f.RealName,
+				"userID":   f.UserID,
 			},
 		})
 	return
