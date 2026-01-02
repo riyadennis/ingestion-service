@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/riyadennis/identity-server/app/proto/identity"
 	"github.com/riyadennis/ingestion-service/business"
 	"github.com/riyadennis/ingestion-service/foundation"
 	"github.com/sirupsen/logrus"
@@ -16,14 +17,16 @@ var (
 )
 
 type UploadHandler struct {
-	Uploader *business.BucketUpload
-	Logger   *logrus.Logger
+	Uploader       *business.BucketUpload
+	Logger         *logrus.Logger
+	identityClient identity.IdentityClient
 }
 
-func NewUploader(logger *logrus.Logger, bu *business.BucketUpload) *UploadHandler {
+func NewUploader(logger *logrus.Logger, bu *business.BucketUpload, idc identity.IdentityClient) *UploadHandler {
 	return &UploadHandler{
-		Uploader: bu,
-		Logger:   logger,
+		Uploader:       bu,
+		Logger:         logger,
+		identityClient: idc,
 	}
 }
 
@@ -64,7 +67,14 @@ func (u *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	
+	userID, err := business.UsrIDFromToken(r.Context(), r, u.identityClient)
+	if err != nil {
+		u.Logger.Errorf("failed to fetch userID from identity server: %v", err)
+		foundation.ErrorResponse(w, http.StatusUnauthorized,
+			errFetchingFile, foundation.InvalidRequest)
+	}
+	fu.UserID = userID
+
 	err = fu.Upload(r.Context(), u.Uploader.Storage, u.Uploader.BucketName)
 	if err != nil {
 		u.Logger.Errorf("failed to read file: %v", err)

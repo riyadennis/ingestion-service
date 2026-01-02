@@ -30,6 +30,10 @@ func main() {
 		logger.Fatalf("failed to make bucket: %v", err)
 	}
 	bu := business.NewBucketUpload(client, cf.BucketName)
+	identityClient, err := business.IdentityClient(os.Getenv("IDENTITY_URL"))
+	if err != nil {
+		logger.Fatalf("failed to create identity gRPC client: %v", err)
+	}
 	rootCommand := cobra.Command{Use: "ingestion"}
 	restCmd := &cobra.Command{
 		Use:   "rest-server",
@@ -43,7 +47,7 @@ func main() {
 
 			signal.Notify(restServer.ShutDown, os.Interrupt, syscall.SIGTERM)
 
-			err = restServer.Run(logger, bu)
+			err = restServer.Run(logger, bu, identityClient)
 			if err != nil {
 				logger.Fatalf("failed to rest start server: %v", err)
 			}
@@ -56,8 +60,8 @@ func main() {
 			gqlServer := graph.NewServer(
 				logger,
 				business.NewBucketUpload(client, cf.BucketName),
+				identityClient,
 				os.Getenv("GQL_PORT"),
-				os.Getenv("IDENTITY_URL"),
 			)
 			signal.Notify(gqlServer.ShutDown, os.Interrupt, syscall.SIGTERM)
 			err = gqlServer.Start(os.Getenv("GQL_PORT"))
