@@ -50,6 +50,7 @@ services:
       - STORAGE_ACCESS_KEY=admin
       - STORAGE_SECRET_KEY=password123
       - STORAGE_BUCKET_NAME=test
+      - IDENTITY_URL=host.docker.internal:8096
     depends_on:
       - minio
     networks:

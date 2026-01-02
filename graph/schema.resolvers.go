@@ -7,6 +7,7 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -18,12 +19,19 @@ import (
 // SingleUpload is the resolver for the singleUpload field.
 func (r *mutationResolver) SingleUpload(ctx context.Context, file graphql.Upload) (bool, error) {
 	r.Logger.Infof("uploading file content type: %s", file.ContentType)
+	userID := ctx.Value(UserIDContextKey).(*string)
+	if *userID == "" {
+		r.Logger.Error("unauthorised request, userID not present in context")
+		return false, errors.New("userID not present in context")
+	}
+
 	fu := &business.FileUpload{
 		RealName:    file.Filename,
 		FileName:    business.SanitizeFilename(file.Filename),
 		Size:        file.Size,
 		ContentType: file.ContentType,
 		File:        file.File,
+		UserID:      *userID,
 	}
 	err := fu.Upload(ctx, r.Resolver.Uploader.Storage, r.Resolver.Uploader.BucketName)
 	if err != nil {

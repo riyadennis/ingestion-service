@@ -55,8 +55,9 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			gqlServer := graph.NewServer(
 				logger,
-				os.Getenv("GQL_PORT"),
 				business.NewBucketUpload(client, cf.BucketName),
+				os.Getenv("GQL_PORT"),
+				os.Getenv("IDENTITY_URL"),
 			)
 			signal.Notify(gqlServer.ShutDown, os.Interrupt, syscall.SIGTERM)
 			err = gqlServer.Start(os.Getenv("GQL_PORT"))
