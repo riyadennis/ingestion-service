@@ -28,6 +28,13 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: riyadennis/ingestion-service:latest
+          tags: riyadennis/ingestion-rest-service:latest
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./DockerfileGQL
+          push: true
+          tags: riyadennis/ingestion-gql-service:latest
       - name: Image digest
         run: echo "Image pushed with digest ${{ steps.build.outputs.digest }}"
