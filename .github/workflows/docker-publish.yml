@@ -13,6 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -28,13 +31,17 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: riyadennis/ingestion-rest-service:latest
+
       - name: Build and push gql Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./DockerfileGQL
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: riyadennis/ingestion-gql-service:latest
+
       - name: Image digest
         run: echo "Image pushed with digest ${{ steps.build.outputs.digest }}"
