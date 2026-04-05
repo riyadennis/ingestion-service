@@ -1,11 +1,15 @@
 version: '3.7'
 services:
   minio:
-    container_name: minio
+    # container_name uses a unique prefix so it does not clash with
+    # the "minio" container_name in dashboard/docker-compose.yml.
+    container_name: ingestion-minio
     image: quay.io/minio/minio:latest
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      # Host ports 9002/9003 avoid conflict with dashboard/docker-compose.yml (9000/9001).
+      # Internal services connect via minio:9000 — unaffected by these host mappings.
+      - "9002:9000"
+      - "9003:9001"
     command: [ "server", "/data", "--console-address", ":9001"]
     volumes:
       - ~/minio/data:/data
@@ -16,15 +20,18 @@ services:
       MINIO_ROOT_PASSWORD: password123
   ingestion-rest-service:
     restart: on-failure
-    container_name: ingestion-rest-service
+    # Unique container_name — dashboard/docker-compose.yml also uses "ingestion-rest-service".
+    container_name: ingestion-rest-dev
     build:
       context: ../
       dockerfile: Dockerfile
     ports:
-      - '8090:8090'
+      # Port 8091 aligns with dashboard/docker-compose.yml so REACT_APP_UPLOAD_URL
+      # (http://localhost:8091/upload) works whether running dashboard or this dev compose.
+      - '8091:8091'
     environment:
       - LOG_LEVEL=debug
-      - REST_PORT=8090
+      - REST_PORT=8091
       - STORAGE_ENDPOINT=minio:9000
       - STORAGE_USE_SSL=false
       - STORAGE_ACCESS_KEY=admin
@@ -37,15 +44,16 @@ services:
       mynet:
   ingestion-gql-service:
     restart: on-failure
-    container_name: ingestion-gql-service
+    container_name: ingestion-gql-dev
     build:
       context: ../
       dockerfile: DockerfileGQL
     ports:
-      - '8091:8091'
+      # Moved from 8091 (now used by REST service) to 8093.
+      - '8093:8093'
     environment:
       - LOG_LEVEL=debug
-      - GQL_PORT=8091
+      - GQL_PORT=8093
       - STORAGE_ENDPOINT=minio:9000
       - STORAGE_USE_SSL=false
       - STORAGE_ACCESS_KEY=admin
