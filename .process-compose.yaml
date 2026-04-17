@@ -1,8 +1,8 @@
 version: "0.5"
-extends: ../identity-server/.process-compose.yaml
 
 environment:
   - ENV=dev
+
 processes:
   minio:
     command: docker compose -f zarf/docker-compose.yaml up minio
@@ -15,7 +15,7 @@ processes:
       period_seconds: 5
       failure_threshold: 10
 
-  rest-server:
+  rest-server-ingestion:
     command: go run cmd/main.go rest-server
     depends_on:
       minio:
@@ -23,12 +23,12 @@ processes:
     readiness_probe:
       http_get:
         host: 127.0.0.1
-        port: 8091
+        port: 9091
         path: /liveness
       initial_delay_seconds: 5
       period_seconds: 3
 
-  gql-server:
+  gql-server-ingestion:
     command: go run cmd/main.go gql-server
     depends_on:
       minio:
