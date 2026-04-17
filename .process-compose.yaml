@@ -1,0 +1,35 @@
+version: "0.5"
+
+environment:
+  - ENV=dev
+
+processes:
+  minio:
+    command: docker compose -f zarf/docker-compose.yaml up minio
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        port: 9002
+        path: /minio/health/live
+      initial_delay_seconds: 10
+      period_seconds: 5
+      failure_threshold: 10
+
+  rest-server-ingestion:
+    command: go run cmd/main.go rest-server
+    depends_on:
+      minio:
+        condition: process_healthy
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        port: 9091
+        path: /liveness
+      initial_delay_seconds: 5
+      period_seconds: 3
+
+  gql-server-ingestion:
+    command: go run cmd/main.go gql-server
+    depends_on:
+      minio:
+        condition: process_healthy

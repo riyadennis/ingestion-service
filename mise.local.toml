@@ -1,0 +1,26 @@
+# mise.local.toml — local development only, do NOT commit to version control
+# Add mise.local.toml to .gitignore
+
+[env]
+STORAGE_ENDPOINT = "localhost:9000"
+STORAGE_USE_SSL     = false
+STORAGE_ACCESS_KEY        = "admin"
+STORAGE_SECRET_KEY   = "password123"
+STORAGE_BUCKET_NAME   = "test"
+REST_PORT       = 9091
+GQL_PORT   = 9092
+IDENTITY_URL= "localhost:8096"
+[tasks.dev]
+description = "Start all services via process-compose"
+run = "process-compose -f .process-compose.yaml up"
+
+[tasks.test]
+description = "Run all tests"
+run = "go test ./..."
+
+[tasks.lint]
+description = "Run golangci-lint"
+run = "golangci-lint run"
+
+[tools]
+process-compose = "latest"
