@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	errInvalidFile  = errors.New("invalid file in the request")
-	errFetchingFile = errors.New("error fetching file")
+	errInvalidFile         = errors.New("invalid file in the request")
+	errFetchingFile        = errors.New("error fetching file")
+	errAuthenicationFailed = errors.New("failed to authenticate the user")
 )
 
 type UploadHandler struct {
@@ -71,7 +72,7 @@ func (u *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		u.Logger.Errorf("failed to fetch userID from identity server: %v", err)
 		foundation.ErrorResponse(w, http.StatusUnauthorized,
-			errFetchingFile, foundation.InvalidRequest)
+			errAuthenicationFailed, foundation.InvalidRequest)
 	}
 	fu.UserID = userID
 

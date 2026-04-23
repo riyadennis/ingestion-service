@@ -62,27 +62,33 @@ Upload uploads a file to storage client set on start up
   - Uploads to MinIO bucket
   - Cleans up temp file
 */
-func (f *FileUpload) Upload(ctx context.Context, storage Storage, bucketName string) (err error) {
+func (f *FileUpload) Upload(ctx context.Context, storage Storage, bucketName string) error {
 	// validate file type
 	if !AllowedTypes[f.ContentType] {
 		return errUnsupportedFileType
 	}
 	// save a temporary copy of the file
 	data := make([]byte, f.Size)
-	if _, err = io.ReadFull(f.File, data); err != nil {
-		return
+	if _, err := io.ReadFull(f.File, data); err != nil {
+		return err
 	}
 	generatedFileName := generateSafeFilename(f.FileName, f.ContentType)
-	if err = os.WriteFile(generatedFileName, data, 0644); err != nil {
-		return
+	if err := os.WriteFile(generatedFileName, data, 0644); err != nil {
+		return err
 	}
+
+	var removeErr error
 	defer func() {
-		if removeErr := os.Remove(generatedFileName); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) && err == nil {
-			err = removeErr
+		err := os.Remove(generatedFileName)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			removeErr = err
 		}
 	}()
+	if removeErr != nil {
+		return removeErr
+	}
 	// upload the file to the bucket
-	_, err = storage.FPutObject(ctx,
+	_, err := storage.FPutObject(ctx,
 		bucketName, generatedFileName, generatedFileName,
 		minio.PutObjectOptions{
 			ContentType: f.ContentType,
@@ -91,7 +97,11 @@ func (f *FileUpload) Upload(ctx context.Context, storage Storage, bucketName str
 				"userID":   f.UserID,
 			},
 		})
-	return
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func generateSafeFilename(originalName, contentType string) string {
