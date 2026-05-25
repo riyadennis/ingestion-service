@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/99designs/gqlgen v0.17.89
-	github.com/go-chi/chi/v5 v5.2.5
+	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-chi/cors v1.2.2
 	github.com/minio/minio-go/v7 v7.0.100
 	github.com/riyadennis/identity-server v1.0.0
